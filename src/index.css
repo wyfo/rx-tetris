@@ -1,13 +1,31 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.grid td {
+  width: 20px;
+  height: 20px;
+  border: silver solid 1px;
+}
+.grid td.I {
+  background-color: turquoise;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+.grid td.O {
+  background-color: yellow;
+}
+.grid td.T {
+  background-color: purple;
+}
+.grid td.J {
+  background-color: blue;
+}
+.grid td.L {
+  background-color: orange;
+}
+.grid td.S {
+  background-color: greenyellow;
+}
+.grid td.Z {
+  background-color: red;
+}
+
+.grid {
+  border: gray solid 2px;
 }
