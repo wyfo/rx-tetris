@@ -6,3 +6,4 @@ import { current$, Tetromino } from './Tetromino';
 const App = props => <Grid></Grid>
 
 export default App;
+current$.next(Tetromino.init())
