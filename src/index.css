@@ -1,6 +1,6 @@
 .grid td {
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
   border: silver solid 1px;
 }
 .grid td.I {
@@ -24,6 +24,10 @@
 }
 .grid td.Z {
   background-color: red;
+}
+
+.grid td.ghost {
+  background-color: gray;
 }
 
 .grid {

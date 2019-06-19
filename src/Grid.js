@@ -1,24 +1,15 @@
 import React from 'react'
-import { BehaviorSubject } from 'rxjs';
 import Line from './Line';
 import { bindWith } from 'rx-react-binding';
+import { grid$ } from './logic';
 
-export const GRID_HEIGHT = 22
-export const GRID_WIDTH = 10
-export const INITIAL_GRID = Array(GRID_HEIGHT).fill(null).map(() =>
-    Array(GRID_WIDTH).fill(null)
-)
 
-export const insideGrid = (i, j) => i >= 0 && i < GRID_HEIGHT && j >= 0 && j < GRID_WIDTH
-
-export const grid$ = new BehaviorSubject(INITIAL_GRID)
-
-const Grid = props => <table className="grid">
+const Grid = props => props.grid ? <table className="grid">
     <tbody>
         {props.grid.map((line, i) =>
             <Line line={line} key={i}></Line>
         )}
     </tbody>
-</table>
+</table> : <></>
 
 export default bindWith({ grid$ })(Grid)
