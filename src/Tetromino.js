@@ -2,10 +2,7 @@ import { TETROMINO, TETROMINO_SQUARES, TETROMINO_CENTER, GRID_HEIGHT, insideGrid
 
 const randomRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min)
 
-
-Array.prototype.includesSub = function (subArray) {
-    return this.some(elt => JSON.stringify(elt) == JSON.stringify(subArray))
-}
+const collide = (stack, squares) => squares.some(([i, j]) => stack[i][j] != null)
 
 export default class Tetromino {
     constructor(shape, squares, center) {
@@ -19,7 +16,7 @@ export default class Tetromino {
     }
 
     collide(stack) {
-        return this.squares.some(([i, j]) => stack[i][j] != null)
+        return collide(stack, this.squares)
     }
 
     heightToStack(stack) {
@@ -41,9 +38,25 @@ export default class Tetromino {
 
     move(di, dj, stack) {
         const newSquares = this.squares.map(([i, j]) => [i + di, j + dj])
-        if (newSquares.some(([i, j]) => !insideGrid(i, j))) return null
-        if (newSquares.some(s => stack[s[0]][s[1]] != null && !this.squares.includesSub(s))) return null
+        if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
         const newCenter = [this.center[0] + di, this.center[1] + dj]
         return new Tetromino(this.shape, newSquares, newCenter)
+    }
+
+    rotateLeft(stack) {
+        const [ci, cj] = this.center
+        const newSquares = this.squares.map(([i, j]) =>
+            [j - cj + ci, ci - i + cj]
+        )
+        if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
+        return new Tetromino(this.shape, newSquares, this.center)
+    }
+    rotateRight(stack) {
+        const [ci, cj] = this.center
+        const newSquares = this.squares.map(([i, j]) =>
+            [cj - j + ci, i - ci + cj]
+        )
+        if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
+        return new Tetromino(this.shape, newSquares, this.center)
     }
 }

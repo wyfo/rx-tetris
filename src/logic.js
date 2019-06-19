@@ -67,20 +67,26 @@ const keydown$ = fromEvent(document, 'keydown')
 keydown$.pipe(
     withLatestFrom(current$, stack$),
     filter(([ev, current, grid]) => current != null)
-).subscribe(([ev, current, grid]) => {
+).subscribe(([ev, current, stack]) => {
     const key = ev.keyCode
     if (key == 32) {
-        const next = current.harddrop(grid)
+        const next = current.harddrop(stack)
         if (next != null) current$.next(next)
         current$.next(null)
     } else if (key == 37) {
-        const next = current.move(0, -1, grid)
+        const next = current.move(0, -1, stack)
         if (next != null) current$.next(next)
     } else if (key == 39) {
-        const next = current.move(0, 1, grid)
+        const next = current.move(0, 1, stack)
         if (next != null) current$.next(next)
     } else if (key == 40) {
-        const next = current.move(1, 0, grid)
+        const next = current.move(1, 0, stack)
+        if (next != null) current$.next(next)
+    } else if (key == 65) {
+        const next = current.rotateLeft(stack)
+        if (next != null) current$.next(next)
+    } else if (key == 90) {
+        const next = current.rotateRight(stack)
         if (next != null) current$.next(next)
     }
 })
