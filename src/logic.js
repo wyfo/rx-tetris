@@ -21,13 +21,25 @@ export const grid$ = combineLatest(stack$, notNullCurrent$).pipe(
 // Put tetromino in stack
 current$.pipe(
     pairwise(),
-    filter(([current, next]) => next == null),
+    filter(([_, current]) => current == null),
     withLatestFrom(stack$)
-).subscribe(([[current, next], stack]) => {
-    const nextStack = JSON.parse(JSON.stringify(stack))
-    applyToMatrix(nextStack, current.squares, current.shape)
+).subscribe(([[prev, _], stack]) => {
+    let nextStack = JSON.parse(JSON.stringify(stack))
+    applyToMatrix(nextStack, prev.squares, prev.shape)
+    const lines = [...new Set(prev.squares.map(([i, _]) => i))]
+    const completeLines = lines.filter(i => nextStack[i].every(s => s != null))
+    if (completeLines.length > 0) {
+        const minCompleted = Math.min(...completeLines)
+        const nbCompleted = completeLines.length
+        nextStack = [
+            ...INITIAL_GRID.slice(0, nbCompleted),
+            ...nextStack.slice(0, minCompleted),
+            ...nextStack.slice(minCompleted + nbCompleted)
+        ]
+    }
     stack$.next(nextStack)
 })
+
 
 // New tetromino
 nullCurrent$.pipe(
@@ -39,7 +51,7 @@ nullCurrent$.pipe(
 // Gravity
 current$.pipe(
     pairwise(),
-    filter(([current, next]) => current == null && next != null),
+    filter(([prev, _]) => prev == null),
     switchMap(() => interval(GRAVITY_TIME)),
     withLatestFrom(current$),
     map(([_, current]) => current),
