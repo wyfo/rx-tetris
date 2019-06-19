@@ -9,6 +9,8 @@ export const INITIAL_GRID = Array(GRID_HEIGHT).fill(null).map(() =>
     Array(GRID_WIDTH).fill(null)
 )
 
+export const insideGrid = (i, j) => i >= 0 && i < GRID_HEIGHT && j >= 0 && j < GRID_WIDTH
+
 export const grid$ = new BehaviorSubject(INITIAL_GRID)
 
 const Grid = props => <table className="grid">
