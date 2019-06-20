@@ -1,10 +1,11 @@
-import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, shareReplay } from 'rxjs/operators'
+import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount } from 'rxjs/operators'
 import { Subject, interval, asyncScheduler, fromEvent, BehaviorSubject, combineLatest } from 'rxjs';
-import { INITIAL_GRID, GHOST, GRAVITY_TIME } from './constants';
+import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE } from './constants';
 import Tetromino from './Tetromino';
+import { applyToMatrix } from './utils';
 
-const applyToMatrix = (matrix, pts, value) => pts.forEach(([i, j]) => matrix[i][j] = value)
-
+export const next$ = new Subject()
+export const queue$ = next$.pipe(bufferCount(NEXT_QUEUE_SIZE, 1))
 export const current$ = new Subject()
 const stack$ = new BehaviorSubject(INITIAL_GRID)
 const notNullCurrent$ = current$.pipe(filter(c => c != null))
@@ -44,9 +45,10 @@ current$.pipe(
 // New tetromino
 nullCurrent$.pipe(
     observeOn(asyncScheduler),
-    withLatestFrom(stack$)
-).subscribe(([current, stack]) => {
-    const nextCurrent = Tetromino.init()
+    withLatestFrom(stack$, queue$)
+).subscribe(([_, stack, queue]) => {
+    const nextCurrent = Tetromino.init(queue[0])
+    queue$.next(Tetromino.newShape())
     if (!nextCurrent.collide(stack)) current$.next(nextCurrent)
 })
 

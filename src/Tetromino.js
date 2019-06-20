@@ -1,4 +1,4 @@
-import { TETROMINO, TETROMINO_SQUARES, TETROMINO_CENTER, GRID_HEIGHT, insideGrid } from "./constants";
+import { TETROMINO_SQUARES, TETROMINO_CENTER, GRID_HEIGHT, insideGrid, TETROMINO_SHAPE } from "./constants";
 
 const randomRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min)
 
@@ -11,7 +11,11 @@ export default class Tetromino {
         this.center = center
     }
 
-    static init(shape = TETROMINO[randomRange(0, 6)]) {
+    static newShape() {
+        return TETROMINO_SHAPE[randomRange(0, 6)]
+    }
+
+    static init(shape = Tetromino.newShape) {
         return new Tetromino(shape, TETROMINO_SQUARES[shape], TETROMINO_CENTER[shape])
     }
 
