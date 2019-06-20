@@ -4,7 +4,7 @@ export const INITIAL_GRID = Array(GRID_HEIGHT).fill(null).map(() =>
     Array(GRID_WIDTH).fill(null)
 )
 export const insideGrid = (i, j) => i >= 0 && i < GRID_HEIGHT && j >= 0 && j < GRID_WIDTH
-export const GRAVITY_TIME = 200
+export const GRAVITY_TIME = 1000
 
 export const TETROMINO = {
     0: "I",

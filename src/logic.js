@@ -43,10 +43,12 @@ current$.pipe(
 
 // New tetromino
 nullCurrent$.pipe(
-    observeOn(asyncScheduler)
-).subscribe(current =>
-    current$.next(Tetromino.init())
-)
+    observeOn(asyncScheduler),
+    withLatestFrom(stack$)
+).subscribe(([current, stack]) => {
+    const nextCurrent = Tetromino.init()
+    if (!nextCurrent.collide(stack)) current$.next(nextCurrent)
+})
 
 // Gravity
 current$.pipe(
@@ -65,8 +67,7 @@ current$.pipe(
 // Keys
 const keydown$ = fromEvent(document, 'keydown')
 keydown$.pipe(
-    withLatestFrom(current$, stack$),
-    filter(([ev, current, grid]) => current != null)
+    withLatestFrom(notNullCurrent$, stack$)
 ).subscribe(([ev, current, stack]) => {
     const key = ev.keyCode
     if (key == 32) {
