@@ -46,7 +46,7 @@ export default class Tetromino {
     rotateLeft(stack) {
         const [ci, cj] = this.center
         const newSquares = this.squares.map(([i, j]) =>
-            [j - cj + ci, ci - i + cj]
+            [cj - j + ci, i - ci + cj]
         )
         if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
         return new Tetromino(this.shape, newSquares, this.center)
@@ -54,7 +54,7 @@ export default class Tetromino {
     rotateRight(stack) {
         const [ci, cj] = this.center
         const newSquares = this.squares.map(([i, j]) =>
-            [cj - j + ci, i - ci + cj]
+            [j - cj + ci, ci - i + cj]
         )
         if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
         return new Tetromino(this.shape, newSquares, this.center)
