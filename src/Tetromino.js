@@ -11,7 +11,7 @@ export default class Tetromino {
         this.center = center
     }
 
-    static init(shape = TETROMINO[randomRange(0, 1)]) {
+    static init(shape = TETROMINO[randomRange(0, 6)]) {
         return new Tetromino(shape, TETROMINO_SQUARES[shape], TETROMINO_CENTER[shape])
     }
 
