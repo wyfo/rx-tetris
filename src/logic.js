@@ -20,6 +20,7 @@ export const grid$ = combineLatest(stack$, notNullCurrent$).pipe(
     shareReplay(1),
     startWith(INITIAL_GRID)
 )
+export const hold$ = new BehaviorSubject(null)
 
 // Put tetromino in stack
 current$.pipe(
@@ -43,15 +44,18 @@ current$.pipe(
     stack$.next(nextStack)
 })
 
+const getNewTetromino = (stack, queue) => {
+    const nextCurrent = Tetromino.init(queue[0])
+    queue$.next(Tetromino.newShape())
+    if (!nextCurrent.collide(stack)) current$.next(nextCurrent)
+}
 
 // New tetromino
 nullCurrent$.pipe(
     observeOn(asyncScheduler),
     withLatestFrom(stack$, queue$)
 ).subscribe(([_, stack, queue]) => {
-    const nextCurrent = Tetromino.init(queue[0])
-    queue$.next(Tetromino.newShape())
-    if (!nextCurrent.collide(stack)) current$.next(nextCurrent)
+    getNewTetromino(stack, queue)
 })
 
 // Gravity
@@ -71,8 +75,8 @@ current$.pipe(
 // Keys
 const keydown$ = fromEvent(document, 'keydown')
 keydown$.pipe(
-    withLatestFrom(notNullCurrent$, stack$)
-).subscribe(([ev, current, stack]) => {
+    withLatestFrom(notNullCurrent$, stack$, queue$, hold$)
+).subscribe(([ev, current, stack, queue, hold]) => {
     const key = ev.keyCode
     if (key == 32) {
         const next = current.harddrop(stack)
@@ -93,5 +97,9 @@ keydown$.pipe(
     } else if (key == 90) {
         const next = current.rotateRight(stack)
         if (next != null) current$.next(next)
+    } else if (key == 38) {
+        if (hold == null) getNewTetromino(stack, queue)
+        else current$.next(Tetromino.init(hold))
+        hold$.next(current.shape)
     }
 })
