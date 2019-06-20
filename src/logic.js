@@ -1,4 +1,4 @@
-import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount } from 'rxjs/operators'
+import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount, shareReplay, startWith } from 'rxjs/operators'
 import { Subject, interval, asyncScheduler, fromEvent, BehaviorSubject, combineLatest } from 'rxjs';
 import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE } from './constants';
 import Tetromino from './Tetromino';
@@ -17,6 +17,8 @@ export const grid$ = combineLatest(stack$, notNullCurrent$).pipe(
         applyToMatrix(grid, current.squares, current.shape)
         return grid
     }),
+    shareReplay(1),
+    startWith(INITIAL_GRID)
 )
 
 // Put tetromino in stack
