@@ -1,5 +1,5 @@
-import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount, shareReplay, startWith } from 'rxjs/operators'
-import { Subject, interval, asyncScheduler, fromEvent, BehaviorSubject, combineLatest } from 'rxjs';
+import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount, shareReplay, startWith, mapTo } from 'rxjs/operators'
+import { Subject, interval, asyncScheduler, fromEvent, BehaviorSubject, combineLatest, merge } from 'rxjs';
 import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE } from './constants';
 import Tetromino from './Tetromino';
 import { applyToMatrix } from './utils';
@@ -21,6 +21,10 @@ export const grid$ = combineLatest(stack$, notNullCurrent$).pipe(
     startWith(INITIAL_GRID)
 )
 export const hold$ = new BehaviorSubject(null)
+const alreadySwapped$ = merge(
+    hold$.pipe(mapTo(true)),
+    nullCurrent$.pipe(mapTo(false))
+)
 
 // Put tetromino in stack
 current$.pipe(
@@ -75,8 +79,8 @@ current$.pipe(
 // Keys
 const keydown$ = fromEvent(document, 'keydown')
 keydown$.pipe(
-    withLatestFrom(notNullCurrent$, stack$, queue$, hold$)
-).subscribe(([ev, current, stack, queue, hold]) => {
+    withLatestFrom(notNullCurrent$, stack$, queue$, hold$, alreadySwapped$)
+).subscribe(([ev, current, stack, queue, hold, alreadySwapped]) => {
     const key = ev.keyCode
     if (key == 32) {
         const next = current.harddrop(stack)
@@ -97,7 +101,7 @@ keydown$.pipe(
     } else if (key == 90) {
         const next = current.rotateRight(stack)
         if (next != null) current$.next(next)
-    } else if (key == 38) {
+    } else if (key == 38 && !alreadySwapped) {
         if (hold == null) getNewTetromino(stack, queue)
         else current$.next(Tetromino.init(hold))
         hold$.next(current.shape)
