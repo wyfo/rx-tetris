@@ -64,3 +64,13 @@ export const TETROMINO_CENTER = {
 }
 
 export const NEXT_QUEUE_SIZE = 4
+
+export const LEFT = "j"
+export const RIGHT = "l"
+export const DOWN = "k"
+export const HOLD = "i"
+export const DROP = " "
+export const ROTATE_LEFT = "d"
+export const ROTATE_RIGHT = "f"
+export const DAS = 200
+export const ARR = 20

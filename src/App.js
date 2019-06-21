@@ -8,7 +8,7 @@ import Box from './Box';
 
 const Hold = bindWith({ shape$: hold$ })(Box)
 
-const App = props => <div style={{ 'flex-direction': 'row', display: 'flex' }}>
+const App = props => <div style={{ flexDirection: 'row', display: 'flex' }}>
   <Hold></Hold>
   <Grid></Grid>
   <Queue></Queue>
