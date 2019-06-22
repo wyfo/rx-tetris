@@ -1,11 +1,17 @@
-import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount, shareReplay, startWith, mapTo, switchAll } from 'rxjs/operators'
+import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount, shareReplay, startWith, mapTo, switchAll, share } from 'rxjs/operators'
 import { Subject, interval, asyncScheduler, fromEvent, BehaviorSubject, combineLatest, merge, empty, timer, concat, of } from 'rxjs';
-import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE, HOLD, DROP, ROTATE_LEFT, ROTATE_RIGHT, LEFT, RIGHT, DOWN, ARR, DAS } from './constants';
+import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE, HOLD, DROP, ROTATE_LEFT, ROTATE_RIGHT, LEFT, RIGHT, DOWN, ARR, DAS, TETROMINO_SHAPE } from './constants';
 import Tetromino from './Tetromino';
 import { applyToMatrix } from './utils';
+import { randomGenerator } from './random';
 
+const randGen = randomGenerator()
 export const next$ = new Subject()
-export const queue$ = next$.pipe(bufferCount(NEXT_QUEUE_SIZE, 1))
+export const queue$ = next$.pipe(
+    map(a => TETROMINO_SHAPE[randGen.next().value]),
+    bufferCount(NEXT_QUEUE_SIZE, 1),
+    share()
+)
 export const current$ = new Subject()
 const stack$ = new BehaviorSubject(INITIAL_GRID)
 const notNullCurrent$ = current$.pipe(filter(c => c != null))
@@ -50,7 +56,7 @@ current$.pipe(
 
 const getNewTetromino = (stack, queue) => {
     const nextCurrent = Tetromino.init(queue[0])
-    queue$.next(Tetromino.newShape())
+    next$.next(null)
     if (!nextCurrent.collide(stack)) current$.next(nextCurrent)
 }
 
@@ -86,11 +92,11 @@ const keyup$ = fromEvent(document, 'keyup').pipe(
 )
 const repeat = key => merge(
     keydown$.pipe(
-        filter(k => k == key),
+        filter(k => k === key),
         map(() => concat(of(null), timer(DAS, ARR)))
     ),
     keyup$.pipe(
-        filter(k => k == key),
+        filter(k => k === key),
         mapTo(empty())
     )
 ).pipe(
@@ -111,7 +117,7 @@ repeat(DOWN).subscribe(([_, current, stack]) => {
     if (next != null) current$.next(next)
 })
 keydown$.pipe(
-    filter(key => key == ROTATE_LEFT),
+    filter(key => key === ROTATE_LEFT),
     withLatestFrom(current$, stack$),
     filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
@@ -119,7 +125,7 @@ keydown$.pipe(
     if (next != null) current$.next(next)
 })
 keydown$.pipe(
-    filter(key => key == ROTATE_RIGHT),
+    filter(key => key === ROTATE_RIGHT),
     withLatestFrom(current$, stack$),
     filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
@@ -127,7 +133,7 @@ keydown$.pipe(
     if (next != null) current$.next(next)
 })
 keydown$.pipe(
-    filter(key => key == DROP),
+    filter(key => key === DROP),
     withLatestFrom(current$, stack$),
     filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
@@ -136,7 +142,7 @@ keydown$.pipe(
     current$.next(null)
 })
 keydown$.pipe(
-    filter(key => key == HOLD),
+    filter(key => key === HOLD),
     withLatestFrom(alreadySwapped$, hold$, queue$, current$, stack$),
     filter(([_, alreadySwapped, hold, queue, current, stack]) => !alreadySwapped && current != null)
 ).subscribe(([_, alreadySwapped, hold, queue, current, stack]) => {
