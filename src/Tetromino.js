@@ -51,13 +51,13 @@ export default class Tetromino {
         )
         const kicks = SHAPE_KICK[this.shape][this.state][newState]
         const tries = [[0, 0], ...kicks]
-        for (let [oi, oj] of tries) {
-            const offsetSquares = newSquares.map(([i, j]) => [i + oi, j + oj])
+        for (let [x, y] of tries) {
+            const offsetSquares = newSquares.map(([i, j]) => [i - y, j + x])
             if (validate(stack, offsetSquares)) {
-                const newCenter = [ci + oi, cj + oj]
+                const newCenter = [ci - y, cj + x]
                 return {
                     next: new Tetromino(this.shape, offsetSquares, newCenter, newState),
-                    isKick: oi !== 0 && oj !== 0
+                    isKick: x !== 0 && y !== 0
                 }
             }
         }
