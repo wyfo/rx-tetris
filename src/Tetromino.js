@@ -55,12 +55,9 @@ export default class Tetromino {
             const offsetSquares = newSquares.map(([i, j]) => [i - y, j + x])
             if (validate(stack, offsetSquares)) {
                 const newCenter = [ci - y, cj + x]
-                return {
-                    next: new Tetromino(this.shape, offsetSquares, newCenter, newState),
-                    isKick: x !== 0 && y !== 0
-                }
+                return new Tetromino(this.shape, offsetSquares, newCenter, newState)
             }
         }
-        return { next: null }
+        return null
     }
 }

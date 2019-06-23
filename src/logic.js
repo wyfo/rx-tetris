@@ -117,19 +117,12 @@ repeat(DOWN).subscribe(([_, current, stack]) => {
     }
 })
 keydown$.pipe(
-    filter(key => key === ROTATE_LEFT),
+    map(key => ({ [ROTATE_LEFT]: -1, [ROTATE_RIGHT]: 1 })[key]),
+    filter(sign => sign != null),
     withLatestFrom(current$, stack$),
-).subscribe(([_, current, stack]) => {
-    const { next, isKick } = current.rotate(-1, stack)
-    if (isKick) resetGravity$.next()
-    if (next != null) current$.next(next)
-})
-keydown$.pipe(
-    filter(key => key === ROTATE_RIGHT),
-    withLatestFrom(current$, stack$),
-).subscribe(([_, current, stack]) => {
-    const { next, isKick } = current.rotate(1, stack)
-    if (isKick) resetGravity$.next()
+).subscribe(([sign, current, stack]) => {
+    const next = current.rotate(sign, stack)
+    if (next.heightToStack(stack) == 0) resetGravity$.next()
     if (next != null) current$.next(next)
 })
 keydown$.pipe(
