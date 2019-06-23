@@ -144,8 +144,10 @@ keydown$.pipe(
     withLatestFrom(current$, stack$),
 ).subscribe(([sign, current, stack]) => {
     const next = current.rotate(sign, stack)
-    if (next.heightToStack(stack) === 0) resetGravity$.next()
-    if (next != null) current$.next(next)
+    if (next != null) {
+        if (next.heightToStack(stack) === 0) resetGravity$.next()
+        current$.next(next)
+    }
 })
 keydown$.pipe(
     filter(key => key === DROP),
