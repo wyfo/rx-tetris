@@ -12,12 +12,10 @@ export default class Tetromino {
         this.state = state
     }
 
-    static init(shape) {
-        return new Tetromino(shape, TETROMINO_SQUARES[shape], TETROMINO_CENTER[shape], 0)
-    }
-
-    collide(stack) {
-        return collide(stack, this.squares)
+    static init(shape, stack) {
+        const squares = TETROMINO_SQUARES[shape]
+        if (collide(stack, squares)) return null
+        else return new Tetromino(shape, squares, TETROMINO_CENTER[shape], 0)
     }
 
     heightToStack(stack) {
@@ -57,9 +55,12 @@ export default class Tetromino {
             const offsetSquares = newSquares.map(([i, j]) => [i + oi, j + oj])
             if (validate(stack, offsetSquares)) {
                 const newCenter = [ci + oi, cj + oj]
-                return new Tetromino(this.shape, offsetSquares, newCenter, newState)
+                return {
+                    next: new Tetromino(this.shape, offsetSquares, newCenter, newState),
+                    isKick: oi !== 0 && oj !== 0
+                }
             }
         }
-        return null
+        return { next: null }
     }
 }

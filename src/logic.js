@@ -1,5 +1,5 @@
-import { withLatestFrom, pairwise, observeOn, filter, switchMap, map, bufferCount, shareReplay, startWith, mapTo, switchAll, share } from 'rxjs/operators'
-import { Subject, interval, asyncScheduler, fromEvent, BehaviorSubject, combineLatest, merge, empty, timer, concat, of } from 'rxjs';
+import { withLatestFrom, pairwise, filter, switchMap, map, bufferCount, shareReplay, startWith, mapTo, switchAll, share } from 'rxjs/operators'
+import { Subject, interval, fromEvent, BehaviorSubject, combineLatest, merge, empty, timer, concat, of } from 'rxjs';
 import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE, HOLD, DROP, ROTATE_LEFT, ROTATE_RIGHT, LEFT, RIGHT, DOWN, ARR, DAS, TETROMINO_SHAPE } from './constants';
 import Tetromino from './Tetromino';
 import { applyToMatrix } from './utils';
@@ -12,11 +12,9 @@ export const queue$ = next$.pipe(
     bufferCount(NEXT_QUEUE_SIZE, 1),
     share()
 )
-export const current$ = new Subject()
+const current$ = new Subject()
 const stack$ = new BehaviorSubject(INITIAL_GRID)
-const notNullCurrent$ = current$.pipe(filter(c => c != null))
-const nullCurrent$ = current$.pipe(filter(c => c == null))
-export const grid$ = combineLatest(stack$, notNullCurrent$).pipe(
+export const grid$ = combineLatest(stack$, current$).pipe(
     map(([stack, current]) => {
         const grid = JSON.parse(JSON.stringify(stack))
         applyToMatrix(grid, current.ghost(stack), GHOST)
@@ -29,19 +27,35 @@ export const grid$ = combineLatest(stack$, notNullCurrent$).pipe(
 export const hold$ = new BehaviorSubject(null)
 const alreadySwapped$ = merge(
     hold$.pipe(mapTo(true)),
-    nullCurrent$.pipe(mapTo(false))
+    next$.pipe(mapTo(false))
 )
-const downMove$ = new BehaviorSubject(null)
+const lock$ = new Subject()
+const resetGravity$ = new Subject()
 
-// Put tetromino in stack
-current$.pipe(
+const pushNewTetromino = (shape, stack) => {
+    const next = Tetromino.init(shape, stack)
+    if (next == null) {
+        next$.complete()
+        current$.complete()
+    } else {
+        current$.next(next)
+    }
+}
+
+queue$.pipe(
     pairwise(),
-    filter(([_, current]) => current == null),
     withLatestFrom(stack$)
 ).subscribe(([[prev, _], stack]) => {
+    pushNewTetromino(prev[0], stack)
+})
+
+// Lock
+lock$.pipe(
+    withLatestFrom(current$, stack$)
+).subscribe(([_, current, stack]) => {
     let nextStack = JSON.parse(JSON.stringify(stack))
-    applyToMatrix(nextStack, prev.squares, prev.shape)
-    const lines = [...new Set(prev.squares.map(([i, _]) => i))]
+    applyToMatrix(nextStack, current.squares, current.shape)
+    const lines = [...new Set(current.squares.map(([i, _]) => i))]
     const completeLines = lines.filter(i => nextStack[i].every(s => s != null))
     if (completeLines.length > 0) {
         const minCompleted = Math.min(...completeLines)
@@ -53,36 +67,17 @@ current$.pipe(
         ]
     }
     stack$.next(nextStack)
-})
-
-const getNewTetromino = (stack, queue) => {
-    const nextCurrent = Tetromino.init(queue[0])
-    next$.next(null)
-    if (!nextCurrent.collide(stack)) current$.next(nextCurrent)
-}
-
-// New tetromino
-nullCurrent$.pipe(
-    observeOn(asyncScheduler),
-    withLatestFrom(stack$, queue$)
-).subscribe(([_, stack, queue]) => {
-    getNewTetromino(stack, queue)
+    next$.next()
 })
 
 // Gravity
-const newCurrent$ = current$.pipe(
-    pairwise(),
-    filter(([prev, _]) => prev == null)
-)
-combineLatest(newCurrent$, downMove$).pipe(
+merge(next$, resetGravity$).pipe(
     switchMap(() => interval(GRAVITY_TIME)),
-    withLatestFrom(current$),
-    map(([_, current]) => current),
-    filter(current => current != null),
-    withLatestFrom(stack$)
-).subscribe(([current, grid]) => {
-    const next = current.move(1, 0, grid)
-    current$.next(next)
+    withLatestFrom(current$, stack$),
+).subscribe(([_, current, stack]) => {
+    const next = current.move(1, 0, stack)
+    if (next != null) current$.next(next)
+    else lock$.next()
 })
 
 // Keys
@@ -105,7 +100,6 @@ const repeat = key => merge(
 ).pipe(
     switchAll(),
     withLatestFrom(current$, stack$),
-    filter(([_, current, stack]) => current != null)
 )
 repeat(LEFT).subscribe(([_, current, stack]) => {
     const next = current.move(0, -1, stack)
@@ -118,47 +112,41 @@ repeat(RIGHT).subscribe(([_, current, stack]) => {
 repeat(DOWN).subscribe(([_, current, stack]) => {
     const next = current.move(1, 0, stack)
     if (next != null) {
+        resetGravity$.next()
         current$.next(next)
-        downMove$.next(null)
     }
 })
 keydown$.pipe(
     filter(key => key === ROTATE_LEFT),
     withLatestFrom(current$, stack$),
-    filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
-    const next = current.rotate(-1, stack)
-    if (next != null) {
-        downMove$.next(null)
-        current$.next(next)
-    }
+    const { next, isKick } = current.rotate(-1, stack)
+    if (isKick) resetGravity$.next()
+    if (next != null) current$.next(next)
 })
 keydown$.pipe(
     filter(key => key === ROTATE_RIGHT),
     withLatestFrom(current$, stack$),
-    filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
-    const next = current.rotate(1, stack)
-    if (next != null) {
-        downMove$.next(null)
-        current$.next(next)
-    }
+    const { next, isKick } = current.rotate(1, stack)
+    if (isKick) resetGravity$.next()
+    if (next != null) current$.next(next)
 })
 keydown$.pipe(
     filter(key => key === DROP),
     withLatestFrom(current$, stack$),
-    filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
     const next = current.harddrop(stack)
     if (next != null) current$.next(next)
-    current$.next(null)
+    lock$.next()
 })
 keydown$.pipe(
     filter(key => key === HOLD),
-    withLatestFrom(alreadySwapped$, hold$, queue$, current$, stack$),
-    filter(([_, alreadySwapped, hold, queue, current, stack]) => !alreadySwapped && current != null)
-).subscribe(([_, alreadySwapped, hold, queue, current, stack]) => {
-    if (hold == null) getNewTetromino(stack, queue)
-    else current$.next(Tetromino.init(hold))
+    withLatestFrom(alreadySwapped$),
+    filter(([_, alreadySwapped]) => !alreadySwapped),
+    withLatestFrom(hold$, current$, stack$),
+).subscribe(([_, hold, current, stack]) => {
+    if (hold == null) next$.next()
+    else pushNewTetromino(hold, stack)
     hold$.next(current.shape)
 })
