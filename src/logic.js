@@ -1,6 +1,6 @@
 import { BehaviorSubject, combineLatest, concat, empty, fromEvent, interval, merge, of, Subject, timer } from 'rxjs';
 import { bufferCount, filter, map, mapTo, pairwise, scan, share, shareReplay, startWith, switchAll, switchMap, withLatestFrom } from 'rxjs/operators';
-import { ARR, DAS, DOWN, DROP, GHOST, GRAVITY_TIME, HOLD, INITIAL_GRID, LEFT, NEXT_QUEUE_SIZE, RIGHT, ROTATE_LEFT, ROTATE_RIGHT, TETROMINO_SHAPE } from './constants';
+import { ARR, DAS, DOWN, DROP, GHOST, GRAVITY_TIME, GRID_HEIGHT, HOLD, INITIAL_GRID, LEFT, NEXT_QUEUE_SIZE, RIGHT, ROTATE_LEFT, ROTATE_RIGHT, TETROMINO_SHAPE } from './constants';
 import { randomGenerator } from './random';
 import Tetromino from './Tetromino';
 import { applyToMatrix } from './utils';
@@ -34,6 +34,7 @@ const resetGravity$ = new Subject()
 
 // Scoring
 export const score$ = new BehaviorSubject(0)
+export const b2b$ = new BehaviorSubject(false)
 const mark$ = new Subject()
 mark$.pipe(
     withLatestFrom(score$),
@@ -41,16 +42,33 @@ mark$.pipe(
 
 const lines$ = new Subject()
 lines$.pipe(
-    filter(n => n > 0),
-    pairwise(),
-    map(([prev, n]) => {
-        if (n === 1) return 100
-        if (n === 2) return 300
-        if (n === 3) return 500
-        if (n === 4) return (prev === 4) ? 1200 : 800
+    withLatestFrom(b2b$),
+    map(([{ number, tspin }, b2b]) => {
+        let pts = 0
+        if (tspin) {
+            pts = {
+                0: b2b ? 100 : 150,
+                1: b2b ? 1200 : 800,
+                2: b2b ? 1800 : 1200,
+                3: b2b ? 1600 : 2400,
+            }[number]
+        } else {
+            pts = {
+                0: 100,
+                1: 100,
+                2: 300,
+                3: 500,
+                4: b2b ? 1200 : 800
+            }[number]
+        }
+        return { pts, b2b: tspin || number === 4 }
     }),
-).subscribe(pts => mark$.next(pts)) // Don't use method ref because JS 'this'
+).subscribe(({ pts, b2b }) => {
+    b2b$.next(b2b)
+    mark$.next(pts)
+}) // Don't use method ref because JS 'this'
 lines$.pipe(
+    map(({ number }) => number),
     scan((combo, n) => (n > 0) ? combo + 1 : 0, 0),
     filter(combo => combo > 0)
 ).subscribe(combo => mark$.next(50 * (combo - 1)))
@@ -88,7 +106,15 @@ lock$.pipe(
     }
     stack$.next(nextStack)
     next$.next()
-    lines$.next(completeLines.length)
+    let tspin = false
+    if (current.shape === "T" && current.center[0] < (GRID_HEIGHT - 1)) {
+        const corners = [[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([i, j]) =>
+            [i + current.center[0], j + current.center[1]]
+        ).filter(([i, j]) => stack[i][j] != null)
+        tspin = corners >= 3
+
+    }
+    lines$.next({ number: completeLines.length, tspin })
 })
 
 // Gravity
