@@ -1,9 +1,9 @@
-import { withLatestFrom, pairwise, filter, switchMap, map, bufferCount, shareReplay, startWith, mapTo, switchAll, share } from 'rxjs/operators'
-import { Subject, interval, fromEvent, BehaviorSubject, combineLatest, merge, empty, timer, concat, of } from 'rxjs';
-import { INITIAL_GRID, GHOST, GRAVITY_TIME, NEXT_QUEUE_SIZE, HOLD, DROP, ROTATE_LEFT, ROTATE_RIGHT, LEFT, RIGHT, DOWN, ARR, DAS, TETROMINO_SHAPE } from './constants';
+import { BehaviorSubject, combineLatest, concat, empty, fromEvent, interval, merge, of, Subject, timer } from 'rxjs';
+import { bufferCount, filter, map, mapTo, pairwise, scan, share, shareReplay, startWith, switchAll, switchMap, withLatestFrom } from 'rxjs/operators';
+import { ARR, DAS, DOWN, DROP, GHOST, GRAVITY_TIME, HOLD, INITIAL_GRID, LEFT, NEXT_QUEUE_SIZE, RIGHT, ROTATE_LEFT, ROTATE_RIGHT, TETROMINO_SHAPE } from './constants';
+import { randomGenerator } from './random';
 import Tetromino from './Tetromino';
 import { applyToMatrix } from './utils';
-import { randomGenerator } from './random';
 
 const randGen = randomGenerator()
 export const next$ = new Subject()
@@ -32,12 +32,12 @@ const alreadySwapped$ = merge(
 const lock$ = new Subject()
 const resetGravity$ = new Subject()
 
+// Scoring
 export const score$ = new BehaviorSubject(0)
 const mark$ = new Subject()
 mark$.pipe(
     withLatestFrom(score$),
-    map(([pts, score]) => score + pts)
-).subscribe(score => score$.next(score)) // Don't use method reference cause JS
+).subscribe(([pts, score]) => score$.next(score + pts))
 
 const lines$ = new Subject()
 lines$.pipe(
@@ -49,7 +49,11 @@ lines$.pipe(
         if (n === 3) return 500
         if (n === 4) return (prev === 4) ? 1200 : 800
     }),
-).subscribe(pts => mark$.next(pts))
+).subscribe(pts => mark$.next(pts)) // Don't use method ref because JS 'this'
+lines$.pipe(
+    scan((combo, n) => (n > 0) ? combo + 1 : 0, 0),
+    filter(combo => combo > 0)
+).subscribe(combo => mark$.next(50 * (combo - 1)))
 
 const pushNewTetromino = (shape, stack) => {
     const next = Tetromino.init(shape, stack)
