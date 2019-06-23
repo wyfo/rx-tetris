@@ -78,6 +78,14 @@ const pushNewTetromino = (shape, stack) => {
     if (next == null) {
         next$.complete()
         current$.complete()
+        mark$.complete()
+        stack$.complete()
+        hold$.complete()
+        lock$.complete()
+        resetGravity$.complete()
+        lines$.complete()
+        score$.complete()
+        b2b$.complete()
     } else {
         current$.next(next)
     }
@@ -128,12 +136,14 @@ merge(next$, resetGravity$).pipe(
 })
 
 // Keys
-const keydown$ = fromEvent(document, 'keydown').pipe(
+const keydown$ = fromEvent(document, 'keydown', { passive: true }).pipe(
     filter(ev => !ev.repeat),
-    map(ev => ev.key)
+    map(ev => ev.key),
+    share()
 )
-const keyup$ = fromEvent(document, 'keyup').pipe(
-    map(ev => ev.key)
+const keyup$ = fromEvent(document, 'keyup', { passive: true }).pipe(
+    map(ev => ev.key),
+    share()
 )
 const repeat = key => merge(
     keydown$.pipe(
