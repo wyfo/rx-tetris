@@ -77,12 +77,9 @@ lock$.pipe(
     const lines = [...new Set(current.squares.map(([i, _]) => i))]
     const completeLines = lines.filter(i => nextStack[i].every(s => s != null))
     if (completeLines.length > 0) {
-        const minCompleted = Math.min(...completeLines)
-        const nbCompleted = completeLines.length
         nextStack = [
-            ...INITIAL_GRID.slice(0, nbCompleted),
-            ...nextStack.slice(0, minCompleted),
-            ...nextStack.slice(minCompleted + nbCompleted)
+            ...INITIAL_GRID.slice(0, completeLines.length),
+            ...nextStack.filter((_, i) => !completeLines.includes(i))
         ]
     }
     stack$.next(nextStack)
