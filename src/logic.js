@@ -32,6 +32,25 @@ const alreadySwapped$ = merge(
 const lock$ = new Subject()
 const resetGravity$ = new Subject()
 
+export const score$ = new BehaviorSubject(0)
+const mark$ = new Subject()
+mark$.pipe(
+    withLatestFrom(score$),
+    map(([pts, score]) => score + pts)
+).subscribe(score => score$.next(score)) // Don't use method reference cause JS
+
+const lines$ = new Subject()
+lines$.pipe(
+    filter(n => n > 0),
+    pairwise(),
+    map(([prev, n]) => {
+        if (n === 1) return 100
+        if (n === 2) return 300
+        if (n === 3) return 500
+        if (n === 4) return (prev === 4) ? 1200 : 800
+    }),
+).subscribe(pts => mark$.next(pts))
+
 const pushNewTetromino = (shape, stack) => {
     const next = Tetromino.init(shape, stack)
     if (next == null) {
@@ -68,6 +87,7 @@ lock$.pipe(
     }
     stack$.next(nextStack)
     next$.next()
+    lines$.next(completeLines.length)
 })
 
 // Gravity
@@ -114,6 +134,7 @@ repeat(DOWN).subscribe(([_, current, stack]) => {
     if (next != null) {
         resetGravity$.next()
         current$.next(next)
+        mark$.next(1)
     }
 })
 keydown$.pipe(
@@ -122,16 +143,18 @@ keydown$.pipe(
     withLatestFrom(current$, stack$),
 ).subscribe(([sign, current, stack]) => {
     const next = current.rotate(sign, stack)
-    if (next.heightToStack(stack) == 0) resetGravity$.next()
+    if (next.heightToStack(stack) === 0) resetGravity$.next()
     if (next != null) current$.next(next)
 })
 keydown$.pipe(
     filter(key => key === DROP),
     withLatestFrom(current$, stack$),
 ).subscribe(([_, current, stack]) => {
-    const next = current.harddrop(stack)
+    const height = current.heightToStack(stack)
+    const next = current.move(height, 0, stack)
     if (next != null) current$.next(next)
     lock$.next()
+    mark$.next(2 * height)
 })
 keydown$.pipe(
     filter(key => key === HOLD),

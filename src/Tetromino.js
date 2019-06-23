@@ -31,10 +31,6 @@ export default class Tetromino {
         return this.squares.map(([i, j]) => [i + height, j])
     }
 
-    harddrop(stack) {
-        return this.move(this.heightToStack(stack), 0, stack)
-    }
-
     move(di, dj, stack) {
         const newSquares = this.squares.map(([i, j]) => [i + di, j + dj])
         if (!validate(stack, newSquares)) return null
