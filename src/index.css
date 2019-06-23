@@ -1,7 +1,6 @@
 .grid td {
-  width: 10px;
-  height: 10px;
-  border: silver solid 1px;
+  width: 15px;
+  height: 15px;
 }
 .grid td.I {
   background-color: turquoise;
@@ -32,4 +31,5 @@
 
 .grid {
   border: gray solid 2px;
+  border-spacing: 0;
 }

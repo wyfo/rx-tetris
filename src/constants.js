@@ -65,12 +65,58 @@ export const TETROMINO_CENTER = {
 
 export const NEXT_QUEUE_SIZE = 4
 
-export const LEFT = "j"
-export const RIGHT = "l"
-export const DOWN = "k"
-export const HOLD = "i"
+export const LEFT = "k"
+export const RIGHT = "m"
+export const DOWN = "l"
+export const HOLD = "<"
 export const DROP = " "
-export const ROTATE_LEFT = "d"
-export const ROTATE_RIGHT = "f"
-export const DAS = 200
-export const ARR = 20
+export const ROTATE_LEFT = "Control"
+export const ROTATE_RIGHT = "o"
+export const DAS = 100
+export const ARR = 10
+
+const I_KICK = {
+    0: {
+        1: [[-2, 0], [1, 0], [-2, -1], [1, 2]],
+        3: [[-1, 0], [2, 0], [-1, 2], [2, -1]],
+    },
+    1: {
+        2: [[-1, 0], [2, 0], [-1, 2], [2, -1]],
+        0: [[2, 0], [-1, 0], [2, 1], [-1, -2]],
+    },
+    2: {
+        3: [[2, 0], [-1, 0], [2, 1], [-1, -2]],
+        1: [[1, 0], [-2, 0], [1, -2], [-2, 1]],
+    },
+    3: {
+        0: [[1, 0], [-2, 0], [1, -2], [-2, 1]],
+        2: [[-2, 0], [1, 0], [-2, -1], [1, 2]],
+    }
+}
+const OTHER_KICK = {
+    0: {
+        1: [[-1, 0], [-1, 1], [0, -2], [-1, -2]],
+        3: [[1, 0], [1, 1], [0, -2], [1, -2]],
+    },
+    1: {
+        2: [[1, 0], [1, -1], [0, 2], [1, 2]],
+        0: [[1, 0], [1, -1], [0, 2], [1, 2]],
+    },
+    2: {
+        3: [[1, 0], [1, 1], [0, -2], [1, -2]],
+        1: [[-1, 0], [-1, 1], [0, -2], [-1, -2]],
+    },
+    3: {
+        0: [[-1, 0], [-1, -1], [0, 2], [-1, 2]],
+        2: [[-1, 0], [-1, -1], [0, 2], [-1, 2]],
+    }
+}
+export const SHAPE_KICK = {
+    "I": I_KICK,
+    "O": OTHER_KICK,
+    "T": OTHER_KICK,
+    "J": OTHER_KICK,
+    "L": OTHER_KICK,
+    "S": OTHER_KICK,
+    "Z": OTHER_KICK,
+}

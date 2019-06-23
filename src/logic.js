@@ -31,6 +31,7 @@ const alreadySwapped$ = merge(
     hold$.pipe(mapTo(true)),
     nullCurrent$.pipe(mapTo(false))
 )
+const downMove$ = new BehaviorSubject(null)
 
 // Put tetromino in stack
 current$.pipe(
@@ -69,9 +70,11 @@ nullCurrent$.pipe(
 })
 
 // Gravity
-current$.pipe(
+const newCurrent$ = current$.pipe(
     pairwise(),
-    filter(([prev, _]) => prev == null),
+    filter(([prev, _]) => prev == null)
+)
+combineLatest(newCurrent$, downMove$).pipe(
     switchMap(() => interval(GRAVITY_TIME)),
     withLatestFrom(current$),
     map(([_, current]) => current),
@@ -114,23 +117,32 @@ repeat(RIGHT).subscribe(([_, current, stack]) => {
 })
 repeat(DOWN).subscribe(([_, current, stack]) => {
     const next = current.move(1, 0, stack)
-    if (next != null) current$.next(next)
+    if (next != null) {
+        current$.next(next)
+        downMove$.next(null)
+    }
 })
 keydown$.pipe(
     filter(key => key === ROTATE_LEFT),
     withLatestFrom(current$, stack$),
     filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
-    const next = current.rotateLeft(stack)
-    if (next != null) current$.next(next)
+    const next = current.rotate(-1, stack)
+    if (next != null) {
+        downMove$.next(null)
+        current$.next(next)
+    }
 })
 keydown$.pipe(
     filter(key => key === ROTATE_RIGHT),
     withLatestFrom(current$, stack$),
     filter(([_, current, stack]) => current != null)
 ).subscribe(([_, current, stack]) => {
-    const next = current.rotateRight(stack)
-    if (next != null) current$.next(next)
+    const next = current.rotate(1, stack)
+    if (next != null) {
+        downMove$.next(null)
+        current$.next(next)
+    }
 })
 keydown$.pipe(
     filter(key => key === DROP),

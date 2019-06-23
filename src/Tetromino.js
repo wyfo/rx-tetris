@@ -1,16 +1,19 @@
-import { TETROMINO_SQUARES, TETROMINO_CENTER, GRID_HEIGHT, insideGrid } from "./constants";
+import { TETROMINO_SQUARES, TETROMINO_CENTER, GRID_HEIGHT, insideGrid, SHAPE_KICK } from "./constants";
 
 const collide = (stack, squares) => squares.some(([i, j]) => stack[i][j] != null)
 
+const validate = (stack, squares) => squares.every(([i, j]) => insideGrid(i, j)) && !collide(stack, squares)
+
 export default class Tetromino {
-    constructor(shape, squares, center) {
+    constructor(shape, squares, center, state) {
         this.shape = shape
         this.squares = squares
         this.center = center
+        this.state = state
     }
 
     static init(shape) {
-        return new Tetromino(shape, TETROMINO_SQUARES[shape], TETROMINO_CENTER[shape])
+        return new Tetromino(shape, TETROMINO_SQUARES[shape], TETROMINO_CENTER[shape], 0)
     }
 
     collide(stack) {
@@ -36,25 +39,27 @@ export default class Tetromino {
 
     move(di, dj, stack) {
         const newSquares = this.squares.map(([i, j]) => [i + di, j + dj])
-        if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
+        if (!validate(stack, newSquares)) return null
         const newCenter = [this.center[0] + di, this.center[1] + dj]
-        return new Tetromino(this.shape, newSquares, newCenter)
+        return new Tetromino(this.shape, newSquares, newCenter, this.state)
     }
 
-    rotateLeft(stack) {
+    rotate(sign, stack) {
+        console.assert(sign === 1 || sign === -1)
+        const newState = (this.state + sign + 4) % 4
         const [ci, cj] = this.center
         const newSquares = this.squares.map(([i, j]) =>
-            [cj - j + ci, i - ci + cj]
+            [ci + sign * (j - cj), cj + sign * (ci - i)]
         )
-        if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
-        return new Tetromino(this.shape, newSquares, this.center)
-    }
-    rotateRight(stack) {
-        const [ci, cj] = this.center
-        const newSquares = this.squares.map(([i, j]) =>
-            [j - cj + ci, ci - i + cj]
-        )
-        if (newSquares.some(([i, j]) => !insideGrid(i, j)) || collide(stack, newSquares)) return null
-        return new Tetromino(this.shape, newSquares, this.center)
+        const kicks = SHAPE_KICK[this.shape][this.state][newState]
+        const tries = [[0, 0], ...kicks]
+        for (let [oi, oj] of tries) {
+            const offsetSquares = newSquares.map(([i, j]) => [i + oi, j + oj])
+            if (validate(stack, offsetSquares)) {
+                const newCenter = [ci + oi, cj + oj]
+                return new Tetromino(this.shape, offsetSquares, newCenter, newState)
+            }
+        }
+        return null
     }
 }
