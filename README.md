@@ -1,3 +1,4 @@
+(This project needs the library *rx-react-binding* and it's not listed in dependecies (was just local development for fun))
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
