@@ -86,6 +86,13 @@ const pushNewTetromino = (shape, stack) => {
         lines$.complete()
         score$.complete()
         b2b$.complete()
+        move$.complete()
+        down$.complete()
+        rotate$.complete()
+        holdKey$.complete()
+        drop$.complete()
+        keydown$$.unsubscribe()
+        keyup$$.unsubscribe()
     } else {
         current$.next(next)
     }
@@ -136,37 +143,19 @@ merge(next$, resetGravity$).pipe(
 })
 
 // Keys
-const keydown$ = fromEvent(document, 'keydown', { passive: true }).pipe(
-    filter(ev => !ev.repeat),
-    map(ev => ev.key),
-    share()
-)
-const keyup$ = fromEvent(document, 'keyup', { passive: true }).pipe(
-    map(ev => ev.key),
-    share()
-)
-const repeat = key => merge(
-    keydown$.pipe(
-        filter(k => k === key),
-        map(() => concat(of(null), timer(DAS, ARR)))
-    ),
-    keyup$.pipe(
-        filter(k => k === key),
-        mapTo(empty())
-    )
-).pipe(
+const move$ = new Subject()
+move$.pipe(
     switchAll(),
-    withLatestFrom(current$, stack$),
-)
-repeat(LEFT).subscribe(([_, current, stack]) => {
-    const next = current.move(0, -1, stack)
+    withLatestFrom(current$, stack$)
+).subscribe(([move, current, stack]) => {
+    const next = current.move(0, move, stack)
     if (next != null) current$.next(next)
 })
-repeat(RIGHT).subscribe(([_, current, stack]) => {
-    const next = current.move(0, 1, stack)
-    if (next != null) current$.next(next)
-})
-repeat(DOWN).subscribe(([_, current, stack]) => {
+const down$ = new Subject()
+down$.pipe(
+    switchAll(),
+    withLatestFrom(current$, stack$)
+).subscribe(([_, current, stack]) => {
     const next = current.move(1, 0, stack)
     if (next != null) {
         resetGravity$.next()
@@ -174,10 +163,9 @@ repeat(DOWN).subscribe(([_, current, stack]) => {
         mark$.next(1)
     }
 })
-keydown$.pipe(
-    map(key => ({ [ROTATE_LEFT]: -1, [ROTATE_RIGHT]: 1 })[key]),
-    filter(sign => sign != null),
-    withLatestFrom(current$, stack$),
+const rotate$ = new Subject()
+rotate$.pipe(
+    withLatestFrom(current$, stack$)
 ).subscribe(([sign, current, stack]) => {
     const next = current.rotate(sign, stack)
     if (next != null) {
@@ -185,8 +173,8 @@ keydown$.pipe(
         current$.next(next)
     }
 })
-keydown$.pipe(
-    filter(key => key === DROP),
+const drop$ = new Subject()
+drop$.pipe(
     withLatestFrom(current$, stack$),
 ).subscribe(([_, current, stack]) => {
     const height = current.heightToStack(stack)
@@ -195,8 +183,8 @@ keydown$.pipe(
     lock$.next()
     mark$.next(2 * height)
 })
-keydown$.pipe(
-    filter(key => key === HOLD),
+const holdKey$ = new Subject()
+holdKey$.pipe(
     withLatestFrom(alreadySwapped$),
     filter(([_, alreadySwapped]) => !alreadySwapped),
     withLatestFrom(hold$, current$, stack$),
@@ -204,4 +192,48 @@ keydown$.pipe(
     if (hold == null) next$.next()
     else pushNewTetromino(hold, stack)
     hold$.next(current.shape)
+})
+const keydown$$ = fromEvent(document, 'keydown', { passive: true }).pipe(
+    filter(ev => !ev.repeat),
+    map(ev => ev.key),
+).subscribe(key => {
+    switch (key) {
+        case LEFT:
+            move$.next(concat(of(null), timer(DAS, ARR)).pipe(mapTo(-1)))
+            break
+        case RIGHT:
+            move$.next(concat(of(null), timer(DAS, ARR)).pipe(mapTo(1)))
+            break
+        case DOWN:
+            down$.next(concat(of(null), timer(DAS, ARR)))
+            break
+        case ROTATE_LEFT:
+            rotate$.next(-1)
+            break
+        case ROTATE_RIGHT:
+            rotate$.next(1)
+            break
+        case HOLD:
+            holdKey$.next()
+            break
+        case DROP:
+            drop$.next()
+            break
+        default:
+            break
+    }
+})
+const keyup$$ = fromEvent(document, 'keyup', { passive: true }).pipe(
+    map(ev => ev.key),
+).subscribe(key => {
+    switch (key) {
+        case LEFT: case RIGHT:
+            move$.next(empty())
+            break
+        case DOWN:
+            down$.next(empty())
+            break
+        default:
+            break
+    }
 })
